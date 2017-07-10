@@ -642,6 +642,12 @@ public final class DeploymentConfiguration {
 
         File backupPropertiesFile = new File(userPropertiesFile.toString() + ".old");
         if (userPropertiesFile.isFile()) {
+        	if (backupPropertiesFile.exists() && JNLPRuntime.isWindows()) {
+        		// On Windows File.renameTo() returns false if the destination already exists
+        		if(!backupPropertiesFile.delete()) {
+        			throw new IOException("Error saving backup copy of " + userPropertiesFile);
+        		}
+        	}
             if (!userPropertiesFile.renameTo(backupPropertiesFile)) {
                 throw new IOException("Error saving backup copy of " + userPropertiesFile);
             }

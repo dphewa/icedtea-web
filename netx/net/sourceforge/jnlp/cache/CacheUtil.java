@@ -19,6 +19,7 @@ package net.sourceforge.jnlp.cache;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FileOutputStream;
 import java.io.FilePermission;
 import java.io.IOException;
@@ -154,8 +155,32 @@ public class CacheUtil {
         lruHandler.lock();
         try {
             cacheDir = cacheDir.getCanonicalFile();
-            FileUtils.recursiveDelete(cacheDir, cacheDir);
-            cacheDir.mkdir();
+            if (JNLPRuntime.isWindows()) {
+                
+            	// Windows requires a more sophisticated cache deletion approach
+                // The cacheDir hosts the "recently_used" file over which the lruHandler holds a lock
+                // Windows will not allow deletion of a locked file and thus the recursive deletion 
+                // of the cacheDir will fail with an IOException.
+                // More over all cached resources will be deleted rendering the JNLP runtime unusable 
+                // the next time a JNLP application is run
+            	final File[] cachedResources = cacheDir.listFiles(new FileFilter() {
+					@Override
+					public boolean accept(final File file) {
+						return !file.equals(lruHandler.getRecentlyUsedPropertiesFile().getStoreFile());
+					}
+				});
+            	
+            	for (final File file : cachedResources) {
+            		FileUtils.recursiveDelete(file, cacheDir);
+            	}
+            	
+            	// Truncate the recently used file
+            	lruHandler.getRecentlyUsedPropertiesFile().truncate(0);
+            	
+            } else {
+                FileUtils.recursiveDelete(cacheDir, cacheDir);
+                cacheDir.mkdir();
+            }
             lruHandler.clearLRUSortedEntries();
             lruHandler.store();
         } catch (IOException e) {

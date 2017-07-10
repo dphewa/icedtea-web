@@ -37,6 +37,8 @@
 package net.sourceforge.jnlp.util;
 
 import net.sourceforge.jnlp.util.logging.OutputController;
+
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -52,7 +54,12 @@ public class HttpUtils {
         try {
             consumeAndCloseConnection(c);
         } catch (IOException ex) {
-            OutputController.getLogger().log(OutputController.Level.ERROR_ALL, ex);
+        	// FileNotFoundException may come if the HTTP response code is 404
+        	if (!(ex instanceof FileNotFoundException)) {
+        		OutputController.getLogger().log(OutputController.Level.ERROR_ALL, ex);
+        	} else {
+			    OutputController.getLogger().log(OutputController.Level.MESSAGE_DEBUG, ex);
+            }
         }
     }
 

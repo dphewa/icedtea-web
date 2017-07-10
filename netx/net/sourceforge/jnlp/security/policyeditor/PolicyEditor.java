@@ -517,7 +517,8 @@ public class PolicyEditor extends JPanel {
     }
 
     private static String getDefaultPolicyFilePath() throws URISyntaxException {
-        return new File(new URI(PathsAndFiles.JAVA_POLICY.getFullPath())).getAbsolutePath();
+    	final String path = PathsAndFiles.JAVA_POLICY.getFullPath().replaceAll("\\\\", "/");
+        return new File(new URI(path)).getAbsolutePath();
     }
 
     private void addDefaultAllAppletsIdentifier() {
@@ -1511,7 +1512,7 @@ public class PolicyEditor extends JPanel {
     }
 
     public void openAndParsePolicyFile() {
-        if (getFile() == null) {
+    	if (getFile() == null) {
             return;
         }
         resetEntries();

@@ -48,7 +48,9 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.file.Paths;
 
 import javax.swing.Box;
 import javax.swing.JButton;
@@ -56,8 +58,8 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
-import net.sourceforge.jnlp.config.DeploymentConfiguration;
 
+import net.sourceforge.jnlp.config.DeploymentConfiguration;
 import net.sourceforge.jnlp.config.PathsAndFiles;
 import net.sourceforge.jnlp.security.policyeditor.PolicyEditor;
 import net.sourceforge.jnlp.security.policyeditor.PolicyEditor.PolicyEditorWindow;
@@ -242,8 +244,8 @@ public class PolicyPanel extends NamedBorderPanel {
     private static String localFilePathFromUrlString(final String url) {
         try {
             final URL u = new URL(url);
-            return u.getPath();
-        } catch (MalformedURLException e) {
+            return Paths.get(u.toURI()).toString();
+        } catch (MalformedURLException | URISyntaxException e) {
             return url;
         }
     }

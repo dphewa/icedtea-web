@@ -40,8 +40,10 @@ package net.sourceforge.jnlp.browser;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -63,18 +65,22 @@ public class FirefoxPreferencesFinder {
      */
     public static File find() throws IOException {
 
-        String configPath = System.getProperty("user.home") + File.separator + ".mozilla"
-                + File.separator + "firefox" + File.separator;
+    	Path configPath = null;
+    	if (JNLPRuntime.isWindows()) {
+    		configPath = Paths.get(System.getenv("APPDATA"), "Mozilla", "Firefox");
+    	} else {
+    		configPath = Paths.get(System.getProperty("user.home"), ".mozilla", "firefox");
+    	}
+    	
+        Path profilesPath = Paths.get(configPath.toString(), "profiles.ini");
 
-        String profilesPath = configPath + "profiles.ini";
-
-        if (!(new File(profilesPath).isFile())) {
-            throw new FileNotFoundException(profilesPath);
+        if (!(new File(profilesPath.toString()).isFile())) {
+            throw new FileNotFoundException(profilesPath.toString());
         }
 
         OutputController.getLogger().log("Using firefox's profiles file: " + profilesPath);
 
-        BufferedReader reader = new BufferedReader(new FileReader(profilesPath));
+        BufferedReader reader = Files.newBufferedReader(profilesPath);
 
         List<String> linesInSection = new ArrayList<String>();
         boolean foundDefaultSection = false;
@@ -129,9 +135,9 @@ public class FirefoxPreferencesFinder {
         if (path == null) {
             throw new FileNotFoundException("preferences file");
         } else {
-            String fullPath = configPath + path + File.separator + "prefs.js";
+            final Path fullPath = Paths.get(configPath.toString(), path, "prefs.js");
             OutputController.getLogger().log("Found preferences file: " + fullPath);
-            return new File(fullPath);
+            return new File(fullPath.toString());
         }
     }
 

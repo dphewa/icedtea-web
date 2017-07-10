@@ -99,6 +99,12 @@ public final class FileUtils {
         for (int i = 0; i < INVALID_CHARS.length; i++) {
             if (INVALID_CHARS[i] != File.separatorChar) {
                 if (-1 != path.indexOf(INVALID_CHARS[i])) {
+                	if (JNLPRuntime.isWindows() && INVALID_CHARS[i] == ':') {
+            			// Do not sanitize a colon (':') on a Windows OS
+                		// TODO : This a quick and dirty hack. 
+                		// Find a better way to handle Windows drive names
+            			continue;
+                	}
                     path = path.replace(INVALID_CHARS[i], substitute);
                 }
             }
@@ -122,6 +128,12 @@ public final class FileUtils {
 
         for (int i = 0; i < INVALID_CHARS.length; i++) {
             if (-1 != filename.indexOf(INVALID_CHARS[i])) {
+            	if (JNLPRuntime.isWindows() && INVALID_CHARS[i] == ':') {
+        			// Do not sanitize a colon (':') on a Windows OS
+            		// TODO : This a quick and dirty hack. 
+            		// Find a better way to handle Windows drive names
+        			continue;
+            	}
                 filename = filename.replace(INVALID_CHARS[i], substitute);
             }
         }
@@ -258,6 +270,12 @@ public final class FileUtils {
             // rename this file. Unless the file is moved/renamed, any program that
             // opened the file right after it was created might still be able to
             // read the data.
+            // On Windows File.renameTo returns false if the "rename" destination already exists
+            if (file.exists() && !file.delete()) {
+            	OutputController.getLogger().log(OutputController.Level.ERROR_ALL, R("RCantRename", tempFile, file));
+            	return;
+            }
+            
             if (!tempFile.renameTo(file)) {
                 OutputController.getLogger().log(OutputController.Level.ERROR_ALL, R("RCantRename", tempFile, file));
             }

@@ -37,6 +37,7 @@
 package net.sourceforge.jnlp.util.lockingfile;
 
 import java.io.File;
+import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
@@ -55,6 +56,7 @@ public class LockedFile {
     private RandomAccessFile randomAccessFile;
     private FileChannel fileChannel;
     private File file;
+    private FileDescriptor fileDescriptor;
     // A file lock will protect against locks for multiple
     // processes, while a thread lock is still needed within a single JVM.
     private FileLock processLock = null;
@@ -110,12 +112,18 @@ public class LockedFile {
     }
 
     /**
+     * Get the file being locked.
+     *
+     * @return the fileDescriptor
+     */
+    public FileDescriptor getFileDescriptor() {
+        return fileDescriptor;
+    }
+    /**
      * Lock access to the file. Lock is reentrant.
      */
     public void lock() throws IOException {
-        if (JNLPRuntime.isWindows()) {
-            return;
-        }
+    	
         // Create if does not already exist, cannot lock non-existing file
         if (!isReadOnly()) {
             this.file.createNewFile();
@@ -145,6 +153,7 @@ public class LockedFile {
             this.fileChannel = randomAccessFile.getChannel();
             if (!isReadOnly()){
                 this.processLock = this.fileChannel.lock();
+                this.fileDescriptor = randomAccessFile.getFD();
             }
         }
     }
@@ -153,13 +162,14 @@ public class LockedFile {
      * Unlock access to the file. Lock is reentrant. Does not do anything if not holding the lock.
      */
     public void unlock() throws IOException {
-        if (JNLPRuntime.isWindows() || !this.threadLock.isHeldByCurrentThread()) {
+        if (!this.threadLock.isHeldByCurrentThread()) {
             return;
         }
+        
         boolean releaseProcessLock = (this.threadLock.getHoldCount() == 1);
         try {
             if (releaseProcessLock) {
-                if (this.processLock != null){
+                if (this.processLock != null && this.processLock.isValid()){
                     this.processLock.release();
                 }
                 this.processLock = null;
@@ -167,7 +177,7 @@ public class LockedFile {
                 if (this.randomAccessFile != null){
                     this.randomAccessFile.close();
                 }
-                //necessary for not existing parent direcotry
+                //necessary for not existing parent directory
                 if (this.fileChannel != null){
                     this.fileChannel.close();
                 }
@@ -179,5 +189,9 @@ public class LockedFile {
 
     public boolean isHeldByCurrentThread() {
         return this.threadLock.isHeldByCurrentThread();
+    }
+    
+    public void truncate(final long size) throws IOException {
+    	this.fileChannel.truncate(size);
     }
 }

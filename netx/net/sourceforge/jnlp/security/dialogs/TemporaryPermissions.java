@@ -46,6 +46,7 @@ import java.util.HashSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import net.sourceforge.jnlp.runtime.JNLPRuntime;
 import net.sourceforge.jnlp.security.policyeditor.PermissionActions;
 import net.sourceforge.jnlp.security.policyeditor.PolicyEditorPermissions;
 import net.sourceforge.jnlp.util.logging.OutputController;
@@ -81,7 +82,11 @@ public class TemporaryPermissions {
             Matcher m = expandablePattern.matcher(target);
             while (m.find()) {
                 // Expand any matches by reading from System properties, eg ${java.io.tmpdir} is /tmp on most systems
-                target = m.replaceFirst(System.getProperty(m.group(1)));
+                if (JNLPRuntime.isWindows()) {
+                    target = m.replaceFirst(Matcher.quoteReplacement(System.getProperty(m.group(1))));
+                } else {
+				    target = m.replaceFirst(System.getProperty(m.group(1)));
+                }
                 m = expandablePattern.matcher(target);
             }
 

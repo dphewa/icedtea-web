@@ -36,10 +36,16 @@ exception statement from your version.
 
 package net.sourceforge.jnlp.security.policyeditor;
 
+import static net.sourceforge.jnlp.security.policyeditor.PolicyIdentifier.isDefaultPolicyIdentifier;
+
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.nio.channels.FileLock;
 import java.util.Collection;
 import java.util.Collections;
@@ -53,10 +59,9 @@ import java.util.TreeSet;
 
 import net.sourceforge.jnlp.util.FileUtils;
 import net.sourceforge.jnlp.util.MD5SumWatcher;
+import net.sourceforge.jnlp.util.lockingfile.LockedFile;
 import net.sourceforge.jnlp.util.logging.OutputController;
 import sun.security.provider.PolicyParser;
-
-import static net.sourceforge.jnlp.security.policyeditor.PolicyIdentifier.isDefaultPolicyIdentifier;
 
 public class PolicyFileModel {
 
@@ -107,9 +112,10 @@ public class PolicyFileModel {
         fileWatcher = new MD5SumWatcher(file);
         fileWatcher.update();
         clearPermissions();
-        final FileLock fileLock = FileUtils.getFileLock(file.getAbsolutePath(), false, true);
-        try {
-            parser.read(new FileReader(file));
+        final LockedFile lockedFile = LockedFile.getInstance(file);
+        lockedFile.lock();
+        try (final InputStreamReader reader = new InputStreamReader(new FileInputStream(lockedFile.getFileDescriptor()))) {
+            parser.read(reader);
             keystoreInfo = new KeystoreInfo(parser.getKeyStoreUrl(), parser.getKeyStoreType(), parser.getKeyStoreProvider(), parser.getStorePassURL());
             final Set<PolicyParser.GrantEntry> grantEntries = new HashSet<>(Collections.list(parser.grantElements()));
             synchronized (permissionsMap) {
@@ -132,9 +138,9 @@ public class PolicyFileModel {
                     }
                 }
             }
-        } finally {
+        } finally {	
             try {
-                fileLock.release();
+            	lockedFile.unlock();
             } catch (final IOException e) {
                 OutputController.getLogger().log(e);
             }
@@ -146,9 +152,11 @@ public class PolicyFileModel {
      */
     synchronized void savePolicyFile() throws IOException {
         parser = new PolicyParser(false);
-        FileLock fileLock = null;
+        LockedFile lockedFile = null;
+        OutputStreamWriter writer = null;
         try {
-            fileLock = FileUtils.getFileLock(file.getAbsolutePath(), false, true);
+        	lockedFile = LockedFile.getInstance(file);
+        	lockedFile.lock();
             synchronized (permissionsMap) {
                 for (final PolicyIdentifier identifier : permissionsMap.keySet()) {
                     final String codebase;
@@ -182,17 +190,25 @@ public class PolicyFileModel {
                     parser.add(grantEntry);
                 }
             }
-            parser.write(new FileWriter(file));
+            writer = new OutputStreamWriter(new FileOutputStream(lockedFile.getFileDescriptor()));
+            lockedFile.truncate(0);
+            parser.write(writer);
         } catch (final IOException e) {
             OutputController.getLogger().log(e);
         } finally {
-            if (fileLock != null) {
+            if (lockedFile != null) {
                 try {
-                    fileLock.release();
+                	lockedFile.unlock();
                 } catch (final IOException e) {
                     OutputController.getLogger().log(e);
                 }
-
+            }
+            if (writer != null) {
+            	try {
+            		writer.close();
+            	} catch (final IOException e) {
+                    OutputController.getLogger().log(e);
+                }
             }
         }
         fileWatcher = new MD5SumWatcher(file);

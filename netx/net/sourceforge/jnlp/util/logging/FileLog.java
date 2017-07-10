@@ -68,9 +68,9 @@ public final class FileLog  {
         }
     }
 
-    public static final SimpleDateFormat fileLogNameFormatter = new SimpleDateFormat("yyyy-MM-dd_HH:mm:ss.S");
+    public static final SimpleDateFormat fileLogNameFormatter = new SimpleDateFormat("yyyyMMddHHmmss.S");
     /**"Tue Nov 19 09:43:50 CET 2013"*/
-    public static final SimpleDateFormat pluginSharedFormatter = new SimpleDateFormat("EEE MMM dd HH:mm:ss ZZZ yyyy");
+    public static final SimpleDateFormat pluginSharedFormatter = new SimpleDateFormat("EEE MMM dd HH_mm_ss ZZZ yyyy");
     public static final String defaultloggerName = TextsProvider.ITW + " file-logger";
 
 

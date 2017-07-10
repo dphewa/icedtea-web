@@ -39,11 +39,14 @@ package net.sourceforge.jnlp.util.lockingfile;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+
+import net.sourceforge.jnlp.runtime.JNLPRuntime;
 
 /**
  * Process-locked string storage backed by a file.
@@ -72,6 +75,16 @@ public abstract class LockingReaderWriter {
         return this.lockedFile.getFile();
     }
 
+    /**
+     * Get the underlying file descriptor. 
+     * Any access to this file should use lock() & unlock().
+     * 
+     * @return the fileDescriptor
+     */
+    private FileDescriptor getBackingFileFileDescriptor() {
+    	return this.lockedFile.getFileDescriptor();
+    }
+    
     public boolean isReadOnly() {
         return this.lockedFile.isReadOnly();
     }
@@ -134,9 +147,18 @@ public abstract class LockingReaderWriter {
         }
         BufferedReader reader = null;
         try {
-            reader = new BufferedReader(new InputStreamReader(
-                    new FileInputStream(getBackingFile()), "UTF-8"));
-
+        	if (JNLPRuntime.isWindows()) {
+        		if (getBackingFileFileDescriptor() != null && getBackingFileFileDescriptor().valid()) {
+        			reader = new BufferedReader(new InputStreamReader(
+        					new FileInputStream(getBackingFileFileDescriptor()), "UTF-8"));
+        		} else {
+               		reader = new BufferedReader(new InputStreamReader(
+                            new FileInputStream(getBackingFile()), "UTF-8"));
+        		}
+        	} else {
+        		reader = new BufferedReader(new InputStreamReader(
+        				new FileInputStream(getBackingFile()), "UTF-8"));
+        	}
             while (true) {
                 String line = reader.readLine();
                 if (line == null) {

@@ -43,6 +43,7 @@ import java.util.Map;
 import net.sourceforge.jnlp.ShortcutDesc;
 import static net.sourceforge.jnlp.config.PathsAndFiles.*;
 import net.sourceforge.jnlp.runtime.JNLPProxySelector;
+import net.sourceforge.jnlp.runtime.JNLPRuntime;
 import net.sourceforge.jnlp.runtime.ManifestAttributesChecker;
 
 import static net.sourceforge.jnlp.runtime.Translator.R;
@@ -58,6 +59,9 @@ public class Defaults {
      * @return the default settings for deployment
      */
     public static Map<String, Setting<String>> getDefaults() {
+    	
+    	final String fileProtocolPrefix = JNLPRuntime.isWindows() ? "file:///" : "file://";
+    	
         SecurityManager sm = System.getSecurityManager();
         if (sm != null) {
             sm.checkRead(USER_DEPLOYMENT_FILE.getDefaultFullPath());
@@ -117,7 +121,7 @@ public class Defaults {
                 {
                         DeploymentConfiguration.KEY_USER_SECURITY_POLICY,
                         BasicValueValidators.getUrlValidator(),
-                        "file://" + JAVA_POLICY.getDefaultFullPath()
+                        fileProtocolPrefix + JAVA_POLICY.getDefaultFullPath()
                 },
                 {
                         DeploymentConfiguration.KEY_USER_TRUSTED_CA_CERTS,

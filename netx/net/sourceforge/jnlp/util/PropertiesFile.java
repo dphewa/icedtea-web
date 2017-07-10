@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
+import net.sourceforge.jnlp.runtime.JNLPRuntime;
 import net.sourceforge.jnlp.util.lockingfile.LockedFile;
 import net.sourceforge.jnlp.util.logging.OutputController;
 
@@ -138,7 +139,15 @@ public class PropertiesFile extends Properties {
             try {
 
                 try {
-                    s = new FileInputStream(file);
+                    if (JNLPRuntime.isWindows()) {
+                    	if (lockedFile.getFileDescriptor() != null && lockedFile.getFileDescriptor().valid()) { 
+                    		s = new FileInputStream(lockedFile.getFileDescriptor());
+                    	} else {
+                    		s = new FileInputStream(file);
+                    	}
+                    } else {
+                		s = new FileInputStream(file);
+                	}
                     load(s);
                 } finally {
                     if (s != null) {
@@ -164,7 +173,15 @@ public class PropertiesFile extends Properties {
         try {
             try {
                 file.getParentFile().mkdirs();
-                s = new FileOutputStream(file);
+                if (JNLPRuntime.isWindows()) {
+                	if (lockedFile.getFileDescriptor() != null && lockedFile.getFileDescriptor().valid()) { 
+                		s = new FileOutputStream(lockedFile.getFileDescriptor());
+                	} else {
+                		s = new FileOutputStream(file);
+                	}
+                } else {
+                	s = new FileOutputStream(file);
+                }
                 store(s, header);
 
                 // fsync()
@@ -207,6 +224,14 @@ public class PropertiesFile extends Properties {
         }
     }
 
+    public void truncate(final long size) {
+    	try {
+    		lockedFile.truncate(size);
+    	} catch (IOException e) {
+    		OutputController.getLogger().log(OutputController.Level.ERROR_ALL, e);
+    	}
+    } 
+    
     public boolean isHeldByCurrentThread() {
         return lockedFile.isHeldByCurrentThread();
     }
